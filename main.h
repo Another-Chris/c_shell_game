@@ -4,6 +4,7 @@
 #include <termios.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/ioctl.h>
 
 struct termios orig_term;
 

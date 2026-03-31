@@ -120,10 +120,16 @@ void update(World *world) {
 }
 
 void init_world(World* world) {
-  world->width = WORLD_WIDTH;
-  world->height = WORLD_HEIGHT;
+
+  struct winsize w;
+  if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == -1) {
+    perror("ioctl");
+  }
+
+  world->width = w.ws_col - 8;
+  world->height = w.ws_row - 4;
   world->top_left[0] = 2;
-  world->top_left[1] = 16;
+  world->top_left[1] = 4;
 
   world->snake.curr_len = 1;
   world->snake.curr_dir = 'R';
