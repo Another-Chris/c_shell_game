@@ -18,8 +18,16 @@ struct termios orig_term;
 #define RIGHT "\033[C"
 #define LEFT "\033[D"
 
+#define TOP_LEFT "\u250C"   
+#define TOP_RIGHT "\u2510"
+#define BOTTOM_LEFT "\u2514"
+#define BOTTOM_RIGHT "\u2518" // ┘
+
+
 //=== global settings
 #define MAX_SNAKE_LENGTH 64
+#define WORLD_WIDTH 64  // columns
+#define WORLD_HEIGHT 16 // rows
 
 typedef struct {
   int body[MAX_SNAKE_LENGTH][2];
@@ -27,4 +35,11 @@ typedef struct {
   int curr_dir;
 } Snake;
 
+typedef struct {
+  Snake snake;
+  int food[2];
+  int width;
+  int height;
+  int top_left[2];
+} World;
 

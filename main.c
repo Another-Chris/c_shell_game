@@ -43,11 +43,46 @@ long get_ticks_ms() {
 
 void move_cursor(int row, int col) { printf(CURSOR_POS, row, col); }
 
-void render(Snake snake) {
+void render(World world) {
   printf(CLEAR_SCREEN);
 
+  //=== arena
+  int topx = world.top_left[0];
+  int topy = world.top_left[1];
+  int width = world.width;
+  int height = world.height;
+
+  move_cursor(topx, topy);
+  printf(TOP_LEFT);
+  move_cursor(topx+height, topy);
+  printf(BOTTOM_LEFT);
+  move_cursor(topx, topy+width);
+  printf(TOP_RIGHT);
+  move_cursor(topx+height, topy+width);
+  printf(BOTTOM_RIGHT);
+
+  for (int row = 1; row < height; ++row) {
+    move_cursor(topx+row, topy);
+    printf("|");
+    move_cursor(topx+row, topy+width);
+    printf("|");
+  }
+
+  for (int col = 1; col < width; ++col) {
+    move_cursor(topx, topy+col);
+    printf("-");
+    move_cursor(topx+height, topy+col);
+    printf("-");
+  }
+
+  //=== food
+  move_cursor(topx+world.food[0], topy+world.food[1]);
+  printf("*");
+
+  //=== snake
+  Snake snake = world.snake;
   for (int i = 0; i < snake.curr_len; ++i) {
-    move_cursor(snake.body[i][0], snake.body[i][1]);
+    move_cursor(topx+snake.body[i][0]+1, topy+snake.body[i][1]+1);
     switch (snake.curr_dir) {
     case 'R':
       printf(">");
@@ -66,35 +101,49 @@ void render(Snake snake) {
   fflush(stdout);
 }
 
-void init_snake(Snake *snake) {
-  snake->curr_len = 1;
-  snake->curr_dir = 'R';
-  snake->body[0][0] = 0;
-  snake->body[0][1] = 0;
-}
 
-void update(Snake *snake) {
-  switch (snake->curr_dir) {
+void update(World *world) {
+  switch (world->snake.curr_dir) {
   case 'R':
-    snake->body[0][1]++;
+    world->snake.body[0][1]++;
     break;
   case 'L':
-    snake->body[0][1]--;
+    world->snake.body[0][1]--;
     break;
   case 'U':
-    snake->body[0][0]--;
+    world->snake.body[0][0]--;
     break;
   case 'D':
-    snake->body[0][0]++;
+    world->snake.body[0][0]++;
     break;
   }
 }
 
+void init_world(World* world) {
+  world->width = WORLD_WIDTH;
+  world->height = WORLD_HEIGHT;
+  world->top_left[0] = 2;
+  world->top_left[1] = 16;
+
+  world->snake.curr_len = 1;
+  world->snake.curr_dir = 'R';
+  world->snake.body[0][0] = 0;
+  world->snake.body[0][1] = 0;
+
+  world->food[0] = WORLD_HEIGHT / 2;
+  world->food[1] = WORLD_WIDTH / 2;
+}
+
+
+
+
+
+
 int main() {
   init_raw_mode();
 
-  Snake snake = {0};
-  init_snake(&snake);
+  World world = {0};
+  init_world(&world);
 
   long prev = get_ticks_ms();
   float dt_acc = 0;
@@ -102,10 +151,6 @@ int main() {
 
   printf(HIDE_CURSOR);  // hide cursor
   printf(CLEAR_SCREEN); // clear screen
-  fflush(stdout);
-
-  move_cursor(0, 0);
-  printf(BLOCK);
   fflush(stdout);
 
   int running = 1;
@@ -121,22 +166,22 @@ int main() {
     //TODO: handle escape sequence of input
     switch(key) {
       case 'a':
-        snake.curr_dir = 'L';
+        world.snake.curr_dir = 'L';
         break;
       case 'd':
-        snake.curr_dir = 'R';
+        world.snake.curr_dir = 'R';
         break;
       case 'w':
-        snake.curr_dir = 'U';
+        world.snake.curr_dir = 'U';
         break;
       case 's':
-        snake.curr_dir = 'D';
+        world.snake.curr_dir = 'D';
         break;
     }
 
     if (dt_acc > time_thre) {
-      update(&snake);
-      render(snake);
+      update(&world);
+      render(world);
       dt_acc = 0;
     }
   }
