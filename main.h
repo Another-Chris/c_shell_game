@@ -26,3 +26,5 @@ typedef struct {
   int curr_len;
   int curr_dir;
 } Snake;
+
+

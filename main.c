@@ -5,9 +5,15 @@ void reset_term() {
   printf(SHOW_CURSOR); // show cursor
 }
 
+void cleanup() {
+  reset_term();
+  exit(0);
+}
+
 void init_raw_mode() {
   tcgetattr(STDIN_FILENO, &orig_term);
   atexit(reset_term);
+  signal(SIGINT, cleanup);
   struct termios raw = orig_term;
   raw.c_lflag &= ~(ECHO | ICANON);
   raw.c_cc[VMIN] = 0;
