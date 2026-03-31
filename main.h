@@ -18,10 +18,13 @@ struct termios orig_term;
 #define RIGHT "\033[C"
 #define LEFT "\033[D"
 
+//=== unicode characters
 #define TOP_LEFT "\u250C"   
 #define TOP_RIGHT "\u2510"
 #define BOTTOM_LEFT "\u2514"
-#define BOTTOM_RIGHT "\u2518" // ┘
+#define BOTTOM_RIGHT "\u2518" 
+#define LINE_HORIZONTAL "\u2500"
+#define LINE_VERTICAL "\u2502"
 
 
 //=== global settings

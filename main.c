@@ -63,16 +63,16 @@ void render(World world) {
 
   for (int row = 1; row < height; ++row) {
     move_cursor(topx+row, topy);
-    printf("|");
+    printf(LINE_VERTICAL);
     move_cursor(topx+row, topy+width);
-    printf("|");
+    printf(LINE_VERTICAL);
   }
 
   for (int col = 1; col < width; ++col) {
     move_cursor(topx, topy+col);
-    printf("-");
+    printf(LINE_HORIZONTAL);
     move_cursor(topx+height, topy+col);
-    printf("-");
+    printf(LINE_HORIZONTAL);
   }
 
   //=== food
