@@ -30,7 +30,8 @@ struct termios orig_term;
 
 //=== global settings
 #define MAX_SNAKE_LENGTH 64
-#define WORLD_WIDTH 64  // columns
+#define MAX_FOOD 64
+#define WORLD_WIDTH 32  // columns
 #define WORLD_HEIGHT 16 // rows
 
 typedef struct {
@@ -41,9 +42,17 @@ typedef struct {
   int curr_len;
 } Snake;
 
+
+typedef struct {
+  int curr_foods;
+  int coords[MAX_FOOD][2];
+} Food;
+
+void gen_food(Food* food);
+
 typedef struct {
   Snake snake;
-  int food[2];
+  Food food;
   int width;
   int height;
   int top_left[2];

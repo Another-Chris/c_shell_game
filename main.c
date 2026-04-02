@@ -1,5 +1,33 @@
 #include "main.h"
 
+void gen_food_coords(World* world, int* fx, int* fy) {
+  int width = world->width;
+  int height = world->height;
+
+  // [0, height-1]
+  int randx = rand() % height; 
+  int randy = rand() % width;
+
+  if (randx == 0) {
+    randx = 1;
+  }
+  if (randy == 0) {
+    randy = 1;
+  }
+  
+  for (int i = 0; i < world->snake.curr_len; ++i) {
+    int sx = world->snake.body[i][0];
+    int sy = world->snake.body[i][1];
+    if (sx == randx && sy == randy) {
+      gen_food_coords(world, fx, fy);
+      return;
+    }
+  }
+
+  *fx = randx;
+  *fy = randy;
+}
+
 void reset_term() {
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_term);
   printf(SHOW_CURSOR); // show cursor
@@ -76,8 +104,13 @@ void render(World world) {
   }
 
   //=== food
-  move_cursor(topx + world.food[0] + 1, topy + world.food[1] + 1);
-  printf("*");
+  for (int i = 0; i < world.food.curr_foods; ++i) {
+    int fx = world.food.coords[i][0];
+    int fy = world.food.coords[i][1];
+    move_cursor(topx + fx + 1, topy + fy + 1);
+    printf("*");
+  }
+
 
   //=== snake
   Snake snake = world.snake;
@@ -114,8 +147,16 @@ void update(World *world) {
   }
 
   // eat food
-  if (head_next[0] == world->food[0] && head_next[1] == world->food[1]) {
-    world->snake.curr_len++;
+  for (int i = 0; i < world->food.curr_foods; ++i) {
+    int fx = world->food.coords[i][0];
+    int fy = world->food.coords[i][1];
+    if (head_next[0] == fx && head_next[1] == fy) {
+      world->snake.curr_len++;
+      int new_fx, new_fy;
+      gen_food_coords(world, &new_fx, &new_fy);
+      world->food.coords[i][0] = new_fx;
+      world->food.coords[i][1] = new_fy;
+    }
   }
 
   // move chars
@@ -184,30 +225,42 @@ void update(World *world) {
   head[1] = head_next[1];
 }
 
+
+
 void init_world(World *world) {
 
+  // arena
   struct winsize w;
   if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == -1) {
     perror("ioctl");
   }
 
-  world->width = w.ws_col - 8;
-  world->height = w.ws_row - 4;
-  world->top_left[0] = 2;
-  world->top_left[1] = 4;
+  world->width = WORLD_WIDTH;
+  world->height = WORLD_HEIGHT;
+  world->top_left[0] = (w.ws_row - WORLD_HEIGHT)/2;
+  world->top_left[1] = (w.ws_col - WORLD_WIDTH)/2;
 
+  // snake
   world->snake.curr_dir = 'R';
   world->snake.next_dir = 'R';
   world->snake.body_chars[0] = ">";
-  world->snake.body_chars[1] = "-";
+  world->snake.body_chars[1] = LINE_VERTICAL;
   world->snake.body[0][0] = 0;
   world->snake.body[0][1] = 1;
   world->snake.body[1][0] = 0;
   world->snake.body[1][0] = 0;
   world->snake.curr_len = 2;
 
-  world->food[0] = 3;
-  world->food[1] = 4;
+  // foods
+  world->food.curr_foods = 2;
+
+  int fx, fy;
+  gen_food_coords(world, &fx, &fy);
+  world->food.coords[0][0] = fx;
+  world->food.coords[0][1] = fy;
+  gen_food_coords(world, &fx, &fy);
+  world->food.coords[1][0] = fx;
+  world->food.coords[1][1] = fy;
 }
 
 int main() {
