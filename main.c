@@ -76,56 +76,112 @@ void render(World world) {
   }
 
   //=== food
-  move_cursor(topx + world.food[0], topy + world.food[1]);
+  move_cursor(topx + world.food[0] + 1, topy + world.food[1] + 1);
   printf("*");
 
   //=== snake
   Snake snake = world.snake;
   for (int i = 0; i < snake.curr_len; ++i) {
     move_cursor(topx + snake.body[i][0] + 1, topy + snake.body[i][1] + 1);
-    switch (snake.curr_dir) {
-    case 'R':
-      i == 0 ? printf(">") : printf(LINE_HORIZONTAL);
-      break;
-    case 'L':
-      i == 0 ? printf("<") : printf(LINE_HORIZONTAL);
-      break;
-    case 'U':
-      i == 0 ? printf("^") : printf(LINE_VERTICAL);
-      break;
-    case 'D':
-      i == 0 ? printf("v") : printf(LINE_VERTICAL);
-      break;
-    }
+    printf("%s", snake.body_chars[i]);
   }
   fflush(stdout);
 }
 
 void update(World *world) {
 
+  // determine the char && position
+  int head_next[2] = {0};
+  head_next[0] = world->snake.body[0][0];
+  head_next[1] = world->snake.body[0][1];
+  switch (world->snake.next_dir) {
+  case 'R':
+    world->snake.body_chars[0] = ">";
+    head_next[1]++;
+    break;
+  case 'L':
+    world->snake.body_chars[0] = "<";
+    head_next[1]--;
+    break;
+  case 'U':
+    world->snake.body_chars[0] = "^";
+    head_next[0]--;
+    break;
+  case 'D':
+    world->snake.body_chars[0] = "v";
+    head_next[0]++;
+    break;
+  }
+
+  // eat food
+  if (head_next[0] == world->food[0] && head_next[1] == world->food[1]) {
+    world->snake.curr_len++;
+  }
+
+  // move chars
+  for (int i = world->snake.curr_len - 1; i >= 2; --i) {
+    world->snake.body_chars[i] = world->snake.body_chars[i - 1];
+  }
+
+  // change snake characters
+  char curr_dir = world->snake.curr_dir;
+  char next_dir = world->snake.next_dir;
+  if (world->snake.curr_len > 1) {
+    if (curr_dir != next_dir) {
+      switch (curr_dir) {
+      case 'R':
+        if (next_dir == 'U') {
+          world->snake.body_chars[1] = BOTTOM_RIGHT;
+        } else if (next_dir == 'D') {
+          world->snake.body_chars[1] = TOP_RIGHT;
+        }
+        break;
+      case 'D':
+        if (next_dir == 'L') {
+          world->snake.body_chars[1] = BOTTOM_RIGHT;
+        } else if (next_dir == 'R') {
+          world->snake.body_chars[1] = BOTTOM_LEFT;
+        }
+        break;
+      case 'U':
+        if (next_dir == 'L') {
+          world->snake.body_chars[1] = TOP_RIGHT;
+        } else if (next_dir == 'R') {
+          world->snake.body_chars[1] = TOP_LEFT;
+        }
+        break;
+      case 'L':
+        if (next_dir == 'D') {
+          world->snake.body_chars[1] = TOP_LEFT;
+        } else if (next_dir == 'U') {
+          world->snake.body_chars[1] = BOTTOM_LEFT;
+        }
+        break;
+      }
+    } else {
+      if (curr_dir == 'R' || curr_dir == 'L') {
+        world->snake.body_chars[1] = LINE_HORIZONTAL;
+      } else if (curr_dir == 'U' || curr_dir == 'D') {
+        world->snake.body_chars[1] = LINE_VERTICAL;
+      }
+    }
+  }
+
+  // change current snake directions
+  world->snake.curr_dir = world->snake.next_dir;
+
+  // change positions for each body
   int *tail = NULL;
   int *head = NULL;
-  for (int i = world->snake.curr_len-1; i >= 1; --i) {
+  for (int i = world->snake.curr_len - 1; i >= 1; --i) {
     tail = world->snake.body[i];
-    head = world->snake.body[i-1];
+    head = world->snake.body[i - 1];
     tail[0] = head[0];
     tail[1] = head[1];
   }
 
-  switch (world->snake.curr_dir) {
-  case 'R':
-    head[1]++;
-    break;
-  case 'L':
-    head[1]--;
-    break;
-  case 'U':
-    head[0]--;
-    break;
-  case 'D':
-    head[0]++;
-    break;
-  }
+  head[0] = head_next[0];
+  head[1] = head_next[1];
 }
 
 void init_world(World *world) {
@@ -141,14 +197,17 @@ void init_world(World *world) {
   world->top_left[1] = 4;
 
   world->snake.curr_dir = 'R';
+  world->snake.next_dir = 'R';
+  world->snake.body_chars[0] = ">";
+  world->snake.body_chars[1] = "-";
   world->snake.body[0][0] = 0;
   world->snake.body[0][1] = 1;
   world->snake.body[1][0] = 0;
   world->snake.body[1][0] = 0;
   world->snake.curr_len = 2;
 
-  world->food[0] = WORLD_HEIGHT / 2;
-  world->food[1] = WORLD_WIDTH / 2;
+  world->food[0] = 3;
+  world->food[1] = 4;
 }
 
 int main() {
@@ -178,16 +237,16 @@ int main() {
     // TODO: handle escape sequence of input
     switch (key) {
     case 'a':
-      world.snake.curr_dir = 'L';
+      world.snake.next_dir = 'L';
       break;
     case 'd':
-      world.snake.curr_dir = 'R';
+      world.snake.next_dir = 'R';
       break;
     case 'w':
-      world.snake.curr_dir = 'U';
+      world.snake.next_dir = 'U';
       break;
     case 's':
-      world.snake.curr_dir = 'D';
+      world.snake.next_dir = 'D';
       break;
     }
 

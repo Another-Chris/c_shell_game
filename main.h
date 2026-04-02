@@ -35,8 +35,10 @@ struct termios orig_term;
 
 typedef struct {
   int body[MAX_SNAKE_LENGTH][2];
+  char* body_chars[MAX_SNAKE_LENGTH];
+  char next_dir;
+  char curr_dir;
   int curr_len;
-  int curr_dir;
 } Snake;
 
 typedef struct {
