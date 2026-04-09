@@ -58,5 +58,6 @@ typedef struct {
   int height;
   int top_left[2];
   int score;
+  int game_over;
 } World;
 

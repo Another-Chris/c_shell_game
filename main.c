@@ -1,11 +1,11 @@
 #include "main.h"
 
-void gen_food_coords(World* world, int* fx, int* fy) {
+void gen_food_coords(World *world, int *fx, int *fy) {
   int width = world->width;
   int height = world->height;
 
   // [0, height-1]
-  int randx = rand() % height; 
+  int randx = rand() % height;
   int randy = rand() % width;
 
   if (randx == 0) {
@@ -14,7 +14,7 @@ void gen_food_coords(World* world, int* fx, int* fy) {
   if (randy == 0) {
     randy = 1;
   }
-  
+
   for (int i = 0; i < world->snake.curr_len; ++i) {
     int sx = world->snake.body[i][0];
     int sy = world->snake.body[i][1];
@@ -80,9 +80,15 @@ void render(World world) {
   int height = world.height;
 
   //=== text
-  char* score_str;
+  if (world.game_over == 1) {
+    const char* str = "Game Over!";
+    move_cursor(topx + height / 2, topy + width / 2 - strlen(str) / 2);
+    printf("%s", str);
+  }
+
+  char *score_str;
   asprintf(&score_str, "Score: %d", world.score);
-  move_cursor(topx - 1, topy + width / 2 - strlen(score_str)/2);
+  move_cursor(topx - 1, topy + width / 2 - strlen(score_str) / 2);
   printf(score_str, world.score);
   free(score_str);
 
@@ -118,7 +124,6 @@ void render(World world) {
     printf("*");
   }
 
-
   //=== snake
   Snake snake = world.snake;
   for (int i = 0; i < snake.curr_len; ++i) {
@@ -129,6 +134,21 @@ void render(World world) {
 }
 
 void update(World *world) {
+  if (world->game_over == 1) {
+    return;
+  }
+
+  // invalid direction
+  char curr_dir = world->snake.curr_dir;
+  char next_dir = world->snake.next_dir;
+  if ((curr_dir == 'R' && next_dir == 'L') ||
+      (curr_dir == 'D' && next_dir == 'U') ||
+      (curr_dir == 'L' && next_dir == 'R') ||
+      (curr_dir == 'U' && next_dir == 'D')) 
+  {
+    world->snake.next_dir = world->snake.curr_dir;
+  }
+
 
   // determine the char && position
   int head_next[2] = {0};
@@ -153,6 +173,32 @@ void update(World *world) {
     break;
   }
 
+  for (int i = 1; i < world->snake.curr_len; ++i) {
+    int bx = world->snake.body[i][0];
+    int by = world->snake.body[i][1];
+    if (head_next[0] == bx && head_next[1] == by) {
+      world->game_over = 1;
+      break;
+    }
+  }
+
+  if (world->game_over == 1) {
+    world->snake.body_chars[0] = "X";
+    return;
+  }
+
+  int hx = head_next[0];
+  int hy = head_next[1];
+  if (hx < 0 || hx >= world->height || hy < 0 || hy >= world->width) 
+  {
+    world->game_over = 1;
+  }
+
+  if (world->game_over == 1) {
+    world->snake.body_chars[0] = "X";
+    return;
+  }
+
   // eat food
   for (int i = 0; i < world->food.curr_foods; ++i) {
     int fx = world->food.coords[i][0];
@@ -173,8 +219,8 @@ void update(World *world) {
   }
 
   // change snake characters
-  char curr_dir = world->snake.curr_dir;
-  char next_dir = world->snake.next_dir;
+  curr_dir = world->snake.curr_dir;
+  next_dir = world->snake.next_dir;
   if (world->snake.curr_len > 1) {
     if (curr_dir != next_dir) {
       switch (curr_dir) {
@@ -233,8 +279,6 @@ void update(World *world) {
   head[1] = head_next[1];
 }
 
-
-
 void init_world(World *world) {
 
   // arena
@@ -243,12 +287,13 @@ void init_world(World *world) {
     perror("ioctl");
   }
 
+  world->game_over = 0;
   world->score = 0;
 
   world->width = WORLD_WIDTH;
   world->height = WORLD_HEIGHT;
-  world->top_left[0] = (w.ws_row - WORLD_HEIGHT)/2;
-  world->top_left[1] = (w.ws_col - WORLD_WIDTH)/2;
+  world->top_left[0] = (w.ws_row - WORLD_HEIGHT) / 2;
+  world->top_left[1] = (w.ws_col - WORLD_WIDTH) / 2;
 
   // snake
   world->snake.curr_dir = 'R';
