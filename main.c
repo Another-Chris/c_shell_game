@@ -71,6 +71,45 @@ long get_ticks_ms() {
 
 void move_cursor(int row, int col) { printf(CURSOR_POS, row, col); }
 
+
+void render_game_over_screen(
+    int width, int height, int topx, int topy, int game_over_select) {
+  const char* str = "Game Over!";
+  int num_rows = 4;
+  int xbase = topx + height / 2 - num_rows;
+  int ybase = topy + width / 2 - strlen(str) / 2;
+  move_cursor(xbase, ybase);
+  printf("%s", str);
+
+  int idx = 1;
+  move_cursor(xbase + idx, ybase);
+  for (int i = 0; i < strlen(str); ++i) {
+    printf(LINE_HORIZONTAL);
+  }
+  idx++;
+
+  
+  if (game_over_select == 0) {
+    str = "> Restart";
+  } else {
+    str = "Restart";
+  }
+  move_cursor(xbase + idx, ybase);
+  printf("%s", str);
+  idx++;
+
+  if (game_over_select == 1) {
+    str = "> Quit";
+  } else {
+    str = "Quit";
+  }
+  move_cursor(xbase + idx, ybase);
+  printf("%s", str);
+}
+
+
+
+
 void render(World world) {
   printf(CLEAR_SCREEN);
 
@@ -81,9 +120,7 @@ void render(World world) {
 
   //=== text
   if (world.game_over == 1) {
-    const char* str = "Game Over!";
-    move_cursor(topx + height / 2, topy + width / 2 - strlen(str) / 2);
-    printf("%s", str);
+    render_game_over_screen(width, height, topx, topy, world.game_over_select);
   }
 
   char *score_str;
@@ -288,6 +325,7 @@ void init_world(World *world) {
   }
 
   world->game_over = 0;
+  world->game_over_select = 0;
   world->score = 0;
 
   world->width = WORLD_WIDTH;
@@ -318,6 +356,45 @@ void init_world(World *world) {
   world->food.coords[1][1] = fy;
 }
 
+void resolve_events(enum USER_EVENTS event, World* world) {
+  switch (event) {
+    case KEY_LEFT:
+      world->snake.next_dir = 'L';
+      break;
+    case KEY_RIGHT:
+      world->snake.next_dir = 'R';
+      break;
+    case KEY_UP:
+      if (world->game_over == 1) {
+        world->game_over_select--;
+        if (world->game_over_select < 0) {
+          world->game_over_select = 0;
+        }
+      } else {
+        world->snake.next_dir = 'U';
+      }
+      break;
+    case KEY_DOWN:
+      if (world->game_over == 1) {
+        world->game_over_select++;
+        world->game_over_select%=2;
+      } else {
+        world->snake.next_dir = 'D';
+      }
+      break;
+    case KEY_ENTER:
+      if (world->game_over_select == 0) {
+        init_world(world);
+      }
+      else if (world->game_over_select == 1) {
+        exit(0);
+      }
+      break;
+  }
+  
+
+}
+
 int main() {
   init_raw_mode();
 
@@ -326,39 +403,52 @@ int main() {
 
   long prev = get_ticks_ms();
   float dt_acc = 0;
-  float time_thre = 300;
+  float time_thre = TIME_THRE_GAME;
 
   printf(HIDE_CURSOR);  // hide cursor
   printf(CLEAR_SCREEN); // clear screen
   fflush(stdout);
 
   int running = 1;
-  while (running) {
+  enum USER_EVENTS evt = DEFAULT;
 
+  while (running) {
     long now = get_ticks_ms();
     float dt = now - prev;
     prev = now;
     dt_acc += dt;
 
+    if (world.game_over) {
+      time_thre = TIME_THRE_MENU;
+    } else {
+      time_thre = TIME_THRE_GAME;
+    }
+
     int key = get_key();
 
     // TODO: handle escape sequence of input
     switch (key) {
-    case 'a':
-      world.snake.next_dir = 'L';
-      break;
-    case 'd':
-      world.snake.next_dir = 'R';
-      break;
-    case 'w':
-      world.snake.next_dir = 'U';
-      break;
-    case 's':
-      world.snake.next_dir = 'D';
-      break;
+      case 'a':
+        evt = KEY_LEFT;
+        break;
+      case 'd':
+        evt = KEY_RIGHT;
+        break;
+      case 'w':
+        evt = KEY_UP;
+        break;
+      case 's':
+        evt = KEY_DOWN;
+        break;
+      case '\n':
+        evt = KEY_ENTER;
+        break;
+
     }
 
     if (dt_acc > time_thre) {
+      resolve_events(evt, &world);
+      evt = DEFAULT;
       update(&world);
       render(world);
       dt_acc = 0;

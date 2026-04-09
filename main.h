@@ -29,11 +29,25 @@ struct termios orig_term;
 #define LINE_VERTICAL "\u2502"
 
 
+//=== user events
+enum USER_EVENTS {
+  KEY_UP,
+  KEY_DOWN,
+  KEY_LEFT,
+  KEY_RIGHT,
+  KEY_ENTER,
+  DEFAULT
+};
+
+
 //=== global settings
 #define MAX_SNAKE_LENGTH 64
 #define MAX_FOOD 64
-#define WORLD_WIDTH 64  // columns
+#define WORLD_WIDTH 48  // columns
 #define WORLD_HEIGHT 16 // rows
+#define TIME_THRE_GAME 300 // ms
+#define TIME_THRE_MENU 30 // ms
+
 
 typedef struct {
   int body[MAX_SNAKE_LENGTH][2];
@@ -59,5 +73,6 @@ typedef struct {
   int top_left[2];
   int score;
   int game_over;
+  int game_over_select;
 } World;
 
