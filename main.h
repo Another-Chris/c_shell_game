@@ -4,6 +4,7 @@
 #include <termios.h>
 #include <time.h>
 #include <unistd.h>
+#include <string.h>
 #include <sys/ioctl.h>
 
 struct termios orig_term;
@@ -31,7 +32,7 @@ struct termios orig_term;
 //=== global settings
 #define MAX_SNAKE_LENGTH 64
 #define MAX_FOOD 64
-#define WORLD_WIDTH 32  // columns
+#define WORLD_WIDTH 64  // columns
 #define WORLD_HEIGHT 16 // rows
 
 typedef struct {
@@ -56,5 +57,6 @@ typedef struct {
   int width;
   int height;
   int top_left[2];
+  int score;
 } World;
 

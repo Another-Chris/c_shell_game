@@ -74,12 +74,19 @@ void move_cursor(int row, int col) { printf(CURSOR_POS, row, col); }
 void render(World world) {
   printf(CLEAR_SCREEN);
 
-  //=== arena
   int topx = world.top_left[0];
   int topy = world.top_left[1];
   int width = world.width;
   int height = world.height;
 
+  //=== text
+  char* score_str;
+  asprintf(&score_str, "Score: %d", world.score);
+  move_cursor(topx - 1, topy + width / 2 - strlen(score_str)/2);
+  printf(score_str, world.score);
+  free(score_str);
+
+  //=== arena
   move_cursor(topx, topy);
   printf(TOP_LEFT);
   move_cursor(topx + height, topy);
@@ -156,6 +163,7 @@ void update(World *world) {
       gen_food_coords(world, &new_fx, &new_fy);
       world->food.coords[i][0] = new_fx;
       world->food.coords[i][1] = new_fy;
+      world->score++;
     }
   }
 
@@ -234,6 +242,8 @@ void init_world(World *world) {
   if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == -1) {
     perror("ioctl");
   }
+
+  world->score = 0;
 
   world->width = WORLD_WIDTH;
   world->height = WORLD_HEIGHT;
