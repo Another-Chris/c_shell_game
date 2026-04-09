@@ -107,6 +107,22 @@ void render_game_over_screen(int width, int height, int topx, int topy,
   printf("%s", str);
 }
 
+void render_horizontal_line(enum GameMode game_mode) {
+  if (game_mode == BLOCK) {
+    printf(LINE_HORIZONTAL);
+  } else {
+    printf("-");
+  }
+}
+
+void render_vertical_line(enum GameMode game_mode) {
+  if (game_mode == BLOCK) {
+    printf(LINE_VERTICAL);
+  } else {
+    printf("|");
+  }
+}
+
 void render(World world) {
   printf(CLEAR_SCREEN);
 
@@ -138,16 +154,16 @@ void render(World world) {
 
   for (int row = 1; row < height; ++row) {
     move_cursor(topx + row, topy);
-    printf(LINE_VERTICAL);
+    render_vertical_line(world.game_mode);
     move_cursor(topx + row, topy + width);
-    printf(LINE_VERTICAL);
+    render_vertical_line(world.game_mode);
   }
 
   for (int col = 1; col < width; ++col) {
     move_cursor(topx, topy + col);
-    printf(LINE_HORIZONTAL);
+    render_horizontal_line(world.game_mode);
     move_cursor(topx + height, topy + col);
-    printf(LINE_HORIZONTAL);
+    render_horizontal_line(world.game_mode);
   }
 
   //=== food
@@ -217,13 +233,29 @@ void update_snake(World *world) {
 
   int hx = head_next[0];
   int hy = head_next[1];
-  if (hx < 0 || hx >= world->height || hy < 0 || hy >= world->width) {
-    world->game_state = GAME_OVER;
-  }
-
-  if (world->game_state == GAME_OVER) {
-    world->snake.body_chars[0] = "X";
-    return;
+  if (world->game_mode == BLOCK) {
+    if (hx < 0 || hx >= world->height || hy < 0 || hy >= world->width) {
+      world->game_state = GAME_OVER;
+    }
+    if (world->game_state == GAME_OVER) {
+      world->snake.body_chars[0] = "X";
+      return;
+    }
+  } 
+  // roll over
+  else {
+    if (hx < 0) {
+      head_next[0] = world->height-1;
+    }
+    if (hx >= world->height-1) {
+      head_next[0] = 0;
+    }
+    if (hy < 0) {
+      head_next[1] = world->width-1;
+    }
+    if (hy >= world->width-1) {
+      head_next[1] = 0;
+    }
   }
 
   // eat food
@@ -316,6 +348,7 @@ void init_world(World *world) {
 
   world->game_over_menu.choice = 0;
   world->game_state = PLAYING;
+  world->game_mode = BLOCK;
   world->score = 0;
 
   world->width = WORLD_WIDTH;
@@ -346,7 +379,7 @@ void init_world(World *world) {
   world->food.coords[1][1] = fy;
 }
 
-void resolve_events_game_over(World* world, enum USER_EVENTS event) {
+void resolve_events_game_over(World *world, enum USER_EVENTS event) {
   switch (event) {
   case KEY_UP:
     world->game_over_menu.choice--;
@@ -368,7 +401,7 @@ void resolve_events_game_over(World* world, enum USER_EVENTS event) {
   }
 }
 
-void resolve_events_play(World* world, enum USER_EVENTS event) {
+void resolve_events_play(World *world, enum USER_EVENTS event) {
   switch (event) {
   case KEY_LEFT:
     world->snake.next_dir = 'L';
@@ -382,17 +415,24 @@ void resolve_events_play(World* world, enum USER_EVENTS event) {
   case KEY_DOWN:
     world->snake.next_dir = 'D';
     break;
+  case TOGGLE_MODE:
+    // [TODO]: if binary mode, just use a flag
+    if (world->game_mode == BLOCK) {
+      world->game_mode = TRANSPARENT;
+    } else {
+      world->game_mode = BLOCK;
+    }
   }
 }
 
 void resolve_events(World *world, enum USER_EVENTS event) {
-  switch(world->game_state) {
-    case PLAYING:
-      resolve_events_play(world, event);
-      break;
-    case GAME_OVER:
-      resolve_events_game_over(world, event);
-      break;
+  switch (world->game_state) {
+  case PLAYING:
+    resolve_events_play(world, event);
+    break;
+  case GAME_OVER:
+    resolve_events_game_over(world, event);
+    break;
   }
 }
 
@@ -440,6 +480,9 @@ int main() {
       break;
     case 's':
       evt = KEY_DOWN;
+      break;
+    case 'b':
+      evt = TOGGLE_MODE;
       break;
     case '\n':
       evt = KEY_ENTER;

@@ -12,7 +12,6 @@
 #define HIDE_CURSOR "\033[?25l"
 #define SHOW_CURSOR "\033[?25h"
 #define CLEAR_SCREEN "\033[2J"
-#define BLOCK "\u2588"
 #define CURSOR_POS "\033[%d;%dH"
 #define UP "\033[A"
 #define DOWN "\033[B"
@@ -35,6 +34,7 @@ enum USER_EVENTS {
   KEY_LEFT,
   KEY_RIGHT,
   KEY_ENTER,
+  TOGGLE_MODE,
   DEFAULT
 };
 
@@ -82,6 +82,12 @@ typedef struct {
 } GameOverMenu;
 
 
+enum GameMode {
+  BLOCK,
+  TRANSPARENT
+};
+
+
 typedef struct {
   Snake snake;
   Food food;
@@ -90,6 +96,7 @@ typedef struct {
   int top_left[2];
   int score;
   enum GameState game_state;
+  enum GameMode game_mode;
   GameOverMenu game_over_menu;
 } World;
 
