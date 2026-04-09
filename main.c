@@ -1,5 +1,7 @@
 #include "main.h"
 
+struct termios orig_term;
+
 void gen_food_coords(World *world, int *fx, int *fy) {
   int width = world->width;
   int height = world->height;
@@ -71,10 +73,9 @@ long get_ticks_ms() {
 
 void move_cursor(int row, int col) { printf(CURSOR_POS, row, col); }
 
-
-void render_game_over_screen(
-    int width, int height, int topx, int topy, int game_over_select) {
-  const char* str = "Game Over!";
+void render_game_over_screen(int width, int height, int topx, int topy,
+                             GameOverMenu game_over_menu) {
+  const char *str = "Game Over!";
   int num_rows = 4;
   int xbase = topx + height / 2 - num_rows;
   int ybase = topy + width / 2 - strlen(str) / 2;
@@ -88,8 +89,7 @@ void render_game_over_screen(
   }
   idx++;
 
-  
-  if (game_over_select == 0) {
+  if (game_over_menu.choice == 0) {
     str = "> Restart";
   } else {
     str = "Restart";
@@ -98,7 +98,7 @@ void render_game_over_screen(
   printf("%s", str);
   idx++;
 
-  if (game_over_select == 1) {
+  if (game_over_menu.choice == 1) {
     str = "> Quit";
   } else {
     str = "Quit";
@@ -106,9 +106,6 @@ void render_game_over_screen(
   move_cursor(xbase + idx, ybase);
   printf("%s", str);
 }
-
-
-
 
 void render(World world) {
   printf(CLEAR_SCREEN);
@@ -119,8 +116,8 @@ void render(World world) {
   int height = world.height;
 
   //=== text
-  if (world.game_over == 1) {
-    render_game_over_screen(width, height, topx, topy, world.game_over_select);
+  if (world.game_state == GAME_OVER) {
+    render_game_over_screen(width, height, topx, topy, world.game_over_menu);
   }
 
   char *score_str;
@@ -170,22 +167,16 @@ void render(World world) {
   fflush(stdout);
 }
 
-void update(World *world) {
-  if (world->game_over == 1) {
-    return;
-  }
-
+void update_snake(World *world) {
   // invalid direction
   char curr_dir = world->snake.curr_dir;
   char next_dir = world->snake.next_dir;
   if ((curr_dir == 'R' && next_dir == 'L') ||
       (curr_dir == 'D' && next_dir == 'U') ||
       (curr_dir == 'L' && next_dir == 'R') ||
-      (curr_dir == 'U' && next_dir == 'D')) 
-  {
+      (curr_dir == 'U' && next_dir == 'D')) {
     world->snake.next_dir = world->snake.curr_dir;
   }
-
 
   // determine the char && position
   int head_next[2] = {0};
@@ -214,24 +205,23 @@ void update(World *world) {
     int bx = world->snake.body[i][0];
     int by = world->snake.body[i][1];
     if (head_next[0] == bx && head_next[1] == by) {
-      world->game_over = 1;
+      world->game_state = GAME_OVER;
       break;
     }
   }
 
-  if (world->game_over == 1) {
+  if (world->game_state == GAME_OVER) {
     world->snake.body_chars[0] = "X";
     return;
   }
 
   int hx = head_next[0];
   int hy = head_next[1];
-  if (hx < 0 || hx >= world->height || hy < 0 || hy >= world->width) 
-  {
-    world->game_over = 1;
+  if (hx < 0 || hx >= world->height || hy < 0 || hy >= world->width) {
+    world->game_state = GAME_OVER;
   }
 
-  if (world->game_over == 1) {
+  if (world->game_state == GAME_OVER) {
     world->snake.body_chars[0] = "X";
     return;
   }
@@ -324,8 +314,8 @@ void init_world(World *world) {
     perror("ioctl");
   }
 
-  world->game_over = 0;
-  world->game_over_select = 0;
+  world->game_over_menu.choice = 0;
+  world->game_state = PLAYING;
   world->score = 0;
 
   world->width = WORLD_WIDTH;
@@ -356,43 +346,54 @@ void init_world(World *world) {
   world->food.coords[1][1] = fy;
 }
 
-void resolve_events(enum USER_EVENTS event, World* world) {
+void resolve_events_game_over(World* world, enum USER_EVENTS event) {
   switch (event) {
-    case KEY_LEFT:
-      world->snake.next_dir = 'L';
+  case KEY_UP:
+    world->game_over_menu.choice--;
+    if (world->game_over_menu.choice < 0) {
+      world->game_over_menu.choice = 0;
+    }
+    break;
+  case KEY_DOWN:
+    world->game_over_menu.choice++;
+    world->game_over_menu.choice %= 2;
+    break;
+  case KEY_ENTER:
+    if (world->game_over_menu.choice == 0) {
+      init_world(world);
+    } else if (world->game_over_menu.choice == 1) {
+      exit(0);
+    }
+    break;
+  }
+}
+
+void resolve_events_play(World* world, enum USER_EVENTS event) {
+  switch (event) {
+  case KEY_LEFT:
+    world->snake.next_dir = 'L';
+    break;
+  case KEY_RIGHT:
+    world->snake.next_dir = 'R';
+    break;
+  case KEY_UP:
+    world->snake.next_dir = 'U';
+    break;
+  case KEY_DOWN:
+    world->snake.next_dir = 'D';
+    break;
+  }
+}
+
+void resolve_events(World *world, enum USER_EVENTS event) {
+  switch(world->game_state) {
+    case PLAYING:
+      resolve_events_play(world, event);
       break;
-    case KEY_RIGHT:
-      world->snake.next_dir = 'R';
-      break;
-    case KEY_UP:
-      if (world->game_over == 1) {
-        world->game_over_select--;
-        if (world->game_over_select < 0) {
-          world->game_over_select = 0;
-        }
-      } else {
-        world->snake.next_dir = 'U';
-      }
-      break;
-    case KEY_DOWN:
-      if (world->game_over == 1) {
-        world->game_over_select++;
-        world->game_over_select%=2;
-      } else {
-        world->snake.next_dir = 'D';
-      }
-      break;
-    case KEY_ENTER:
-      if (world->game_over_select == 0) {
-        init_world(world);
-      }
-      else if (world->game_over_select == 1) {
-        exit(0);
-      }
+    case GAME_OVER:
+      resolve_events_game_over(world, event);
       break;
   }
-  
-
 }
 
 int main() {
@@ -418,38 +419,39 @@ int main() {
     prev = now;
     dt_acc += dt;
 
-    if (world.game_over) {
-      time_thre = TIME_THRE_MENU;
-    } else {
+    if (world.game_state == PLAYING) {
       time_thre = TIME_THRE_GAME;
+    } else {
+      time_thre = TIME_THRE_MENU;
     }
 
     int key = get_key();
 
     // TODO: handle escape sequence of input
     switch (key) {
-      case 'a':
-        evt = KEY_LEFT;
-        break;
-      case 'd':
-        evt = KEY_RIGHT;
-        break;
-      case 'w':
-        evt = KEY_UP;
-        break;
-      case 's':
-        evt = KEY_DOWN;
-        break;
-      case '\n':
-        evt = KEY_ENTER;
-        break;
-
+    case 'a':
+      evt = KEY_LEFT;
+      break;
+    case 'd':
+      evt = KEY_RIGHT;
+      break;
+    case 'w':
+      evt = KEY_UP;
+      break;
+    case 's':
+      evt = KEY_DOWN;
+      break;
+    case '\n':
+      evt = KEY_ENTER;
+      break;
     }
 
     if (dt_acc > time_thre) {
-      resolve_events(evt, &world);
+      resolve_events(&world, evt);
       evt = DEFAULT;
-      update(&world);
+      if (world.game_state != GAME_OVER) {
+        update_snake(&world);
+      }
       render(world);
       dt_acc = 0;
     }

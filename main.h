@@ -7,7 +7,6 @@
 #include <string.h>
 #include <sys/ioctl.h>
 
-struct termios orig_term;
 
 //=== escape sequences
 #define HIDE_CURSOR "\033[?25l"
@@ -39,6 +38,13 @@ enum USER_EVENTS {
   DEFAULT
 };
 
+// how to use this
+typedef enum {
+  STATE_PLAYING,
+  STATE_GAME_OVER,
+  STATE_QUIT
+} GameState;
+
 
 //=== global settings
 #define MAX_SNAKE_LENGTH 64
@@ -63,7 +69,18 @@ typedef struct {
   int coords[MAX_FOOD][2];
 } Food;
 
-void gen_food(Food* food);
+
+enum GameState {
+  PLAYING,
+  GAME_OVER,
+  QUIT
+};
+
+
+typedef struct {
+  int choice;
+} GameOverMenu;
+
 
 typedef struct {
   Snake snake;
@@ -72,7 +89,23 @@ typedef struct {
   int height;
   int top_left[2];
   int score;
-  int game_over;
-  int game_over_select;
+  enum GameState game_state;
+  GameOverMenu game_over_menu;
 } World;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
